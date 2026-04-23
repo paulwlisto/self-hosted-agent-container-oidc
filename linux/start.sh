@@ -52,7 +52,7 @@ azure_cli_login() {
     MI)
       echo "Logging in to Azure CLI with managed identity..."
       if [ -n "${AZP_CLIENT_ID:-}" ]; then
-        az login --identity --username "${AZP_CLIENT_ID}" --output none
+        az login --identity --client-id "${AZP_CLIENT_ID}" --output none
       else
         az login --identity --output none
       fi
