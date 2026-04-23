@@ -47,36 +47,6 @@ get_token_sp_oidc() {
     | jq -r '.access_token'
 }
 
-azure_cli_login() {
-  case "${AZP_AUTH_TYPE}" in
-    MI)
-      echo "Logging in to Azure CLI with managed identity..."
-      if [ -n "${AZP_CLIENT_ID:-}" ]; then
-        az login --identity --client-id "${AZP_CLIENT_ID}" --output none
-      else
-        az login --identity --output none
-      fi
-      ;;
-    SP-OIDC)
-      echo "Logging in to Azure CLI with federated credential..."
-      local assertion_file="${AZURE_FEDERATED_TOKEN_FILE:-}"
-      if [ -z "${assertion_file}" ] && [ -n "${AZP_CLIENT_ASSERTION:-}" ]; then
-        assertion_file="$(mktemp)"
-        printf '%s' "${AZP_CLIENT_ASSERTION}" > "${assertion_file}"
-      fi
-      az login --service-principal \
-        --username "${AZP_CLIENT_ID}" \
-        --tenant "${AZP_TENANT_ID}" \
-        --federated-token "$(cat "${assertion_file}")" \
-        --output none
-      ;;
-    *)
-      echo "ERROR: AZP_AUTH_TYPE must be MI or SP-OIDC (got: ${AZP_AUTH_TYPE})" >&2
-      exit 1
-      ;;
-  esac
-}
-
 echo "Acquiring Azure DevOps access token (auth: ${AZP_AUTH_TYPE})..."
 case "${AZP_AUTH_TYPE}" in
   MI)      AZP_TOKEN="$(get_token_managed_identity)" ;;
@@ -88,8 +58,6 @@ if [ -z "${AZP_TOKEN}" ] || [ "${AZP_TOKEN}" = "null" ]; then
   echo "ERROR: failed to acquire Azure DevOps access token" >&2
   exit 1
 fi
-
-azure_cli_login
 
 if [ ! -f .agent ]; then
   echo "Configuring agent..."
