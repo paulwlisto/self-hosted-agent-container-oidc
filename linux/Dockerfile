@@ -81,6 +81,15 @@ RUN TRIVY_VERSION=$(curl -fsSL https://api.github.com/repos/aquasecurity/trivy/r
 # Terraform security tools — checkov
 RUN pipx install checkov
 
+# Python 3.11 (deadsnakes) for downstream project pipelines.
+# Ubuntu 24.04 base ships 3.12; 3.11 is needed for backend tests + seed scripts.
+RUN add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
+        python3.11 \
+        python3.11-venv \
+        python3.11-distutils \
+    && rm -rf /var/lib/apt/lists/*
+
 # Agent user and Azure Pipelines Agent
 RUN useradd -m agent
 WORKDIR /home/agent/azp-agent
