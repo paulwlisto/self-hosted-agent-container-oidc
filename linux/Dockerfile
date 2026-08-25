@@ -105,7 +105,36 @@ RUN AGENT_VERSION=$(curl -fsSL https://api.github.com/repos/microsoft/azure-pipe
 
 COPY linux/start.sh /home/agent/azp-agent/start.sh
 RUN dos2unix /home/agent/azp-agent/start.sh \
-    && chmod +x /home/agent/azp-agent/start.sh
+    && chmod +x /home/agent/azp-agent/start.sh \
+    && chown agent:agent /home/agent/azp-agent/start.sh
+
+# --- Container inputs -------------------------------------------------------
+# Required at runtime:
+#   AZP_URL                     Azure DevOps org URL, e.g. https://dev.azure.com/your-org
+#
+# AZP_AUTH_TYPE=MI (default) - user-assigned managed identity:
+#   MANAGED_IDENTITY_OBJECT_ID  Object (principal) ID of the user-assigned MI. Used
+#                               with the platform MSI endpoint (Container Apps /
+#                               App Service / Functions).
+#   AZP_CLIENT_ID               Client ID of the user-assigned MI. Required when the
+#                               token comes from IMDS (AKS / ACI / VM / VMSS).
+#   IDENTITY_ENDPOINT           Injected by the platform; selects the MSI endpoint.
+#   IDENTITY_HEADER             Injected by the platform; MSI endpoint auth header.
+#
+# AZP_AUTH_TYPE=SP-OIDC - app registration with a federated credential:
+#   AZP_CLIENT_ID               App registration (client) ID
+#   AZP_TENANT_ID               Entra ID tenant ID
+#   AZURE_FEDERATED_TOKEN_FILE  Path to the projected OIDC assertion, or
+#   AZP_CLIENT_ASSERTION        the assertion as a string
+#
+# Optional:
+#   AZP_AGENT_NAME              Agent name (defaults to the container hostname)
+#   AZP_PLACEHOLDER             Non-empty: register the agent, do not start it
+#   AZP_AGENT_ONCE              Non-empty: run a single job, then exit (ephemeral)
+ENV AZP_AUTH_TYPE=MI \
+    AZP_POOL=Default \
+    AZP_WORK=_work \
+    AZP_TOKEN_FILE=/home/agent/azp-agent/.token
 
 USER agent
 ENTRYPOINT ["/home/agent/azp-agent/start.sh"]
